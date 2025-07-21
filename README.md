@@ -97,7 +97,6 @@ import {
 /**
  * IMPORTANT: It is best to listen to context-request (a "Resolver")
  * as early as possible.
- * If you cannot, read more about ContextRoot and "late resolution".
  */
 
 // Resume data (simple POJO)
@@ -123,6 +122,13 @@ const EXAMPLE_DATA_ALREADY_AVAILABLE = {
   }],
 }
 
+/**
+ * Alternatively, we can import and use registerContextProvider helper:
+ *
+ * ```js
+ * registerContextProvider('jsonresume-data', EXAMPLE_DATA_ALREADY_AVAILABLE)
+ * ```
+ */
 window.document.addEventListener('context-request', (event) => {
   // Filter only for the responsibility of that context-request
   if (event.context !== 'jsonresume-data') {
@@ -196,6 +202,99 @@ customElements.define('jsonresume-basics', ResumeBasics)
 customElements.define('jsonresume-work-experience', ResumeWorkExperience)
 ```
 
+## Late Resolution Example
+
+The Context Protocol’s key feature is handling timing mismatches - components may request contexts before providers exist.
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="importmap">
+    {
+      "imports": {
+        "wccg-context": "https://esm.sh/@jsr/wccg-context"
+      }
+    }
+  </script>
+  <script type="module">
+    import { ContextRoot } from 'wccg-context'
+    // Enable late resolution early
+    new ContextRoot().attach(document.body)
+  </script>
+</head>
+<body>
+  <!-- Components render immediately and request context -->
+  <!-- ContextRoot buffers these requests until provider is ready -->
+  <jsonresume-basics></jsonresume-basics>
+  <jsonresume-work-experience></jsonresume-work-experience>
+
+  <script type="module">
+    import {
+      registerContextProvider,
+    } from 'wccg-context'
+
+    // Load resume data asynchronously (happens AFTER components render)
+    fetch('/api/resume.json')
+      .then(response => response.json())
+      .then(resumeData => {
+        // All waiting components receive data when provider registers
+        registerContextProvider('jsonresume-data', resumeData)
+      })
+      .catch(error => {
+        console.error('Failed to load resume:', error)
+        // Provide fallback data
+        registerContextProvider('jsonresume-data', {
+          basics: {
+            label: "Resume not available",
+          }
+        })
+      })
+  </script>
+  <script type="module">
+    // Difference from example-components.mjs
+
+    import {
+      ContextRequestEvent,
+    } from 'wccg-context'
+
+    class ResumeBasics extends HTMLElement {
+      // ...
+      connectedCallback() {
+        this.dispatchEvent(
+          new ContextRequestEvent(
+            'jsonresume-data',
+            this,
+            (basics) => this.#render(basics)
+            // subscription = true is required for ContextRoot to capture
+            true,
+          ),
+        )
+      }
+    }
+
+    class ResumeWorkExperience extends HTMLElement {
+      // ...
+      connectedCallback() {
+        this.dispatchEvent(
+          new ContextRequestEvent(
+            'jsonresume-data',
+            this,
+            (work) => this.#render(work),
+            // subscription = true is required for ContextRoot to capture
+            true,
+          )
+        )
+      }
+    }
+
+    customElements.define('jsonresume-basics', ResumeBasics)
+    customElements.define('jsonresume-work-experience', ResumeWorkExperience)
+  </script>
+</body>
+</html>
+```
+
 ## What This Is NOT
 
 ❌ **Dependency Injection**: Don’t pass services, loggers, or API clients
@@ -223,32 +322,7 @@ Dispatched by components to request contextual data.
 - `callback`: Function called with the context data
 - `subscribe`: Optional boolean for ongoing updates
 
-#### ContextRoot
-
-```javascript
-const root = new ContextRoot()
-root.attach(element) // Begin intercepting context requests
-root.detach(element) // Stop and cleanup
-```
-
-Buffers unsatisfied context requests and replays them when providers become available.
-
-#### ContextProviderEvent
-
-```javascript
-element.dispatchEvent(
-  new ContextProviderEvent(
-    context,
-    element,
-  ),
-)
-```
-
-Announces that a provider is available for a context.
-
 ## Implementation Notes
-
-**Late Resolution**: `ContextRoot` buffers requests with `subscribe: true` and replays them when providers announce availability via `ContextProviderEvent`. This enables dynamic loading scenarios where data arrives after components are rendered.
 
 **Memory Management**: Uses WeakRef patterns to ensure proper garbage collection when components are removed from the DOM.
 
