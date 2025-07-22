@@ -34,18 +34,17 @@ npm install @jsr/wccg-context
 <html>
   <head>
     <script type="importmap">
-    {
-      "imports": {
-        "wccg-context": "https://esm.sh/@jsr/wccg-context"
+      {
+        "imports": {
+          "wccg-context": "https://esm.sh/@jsr/wccg-context"
+        }
       }
-    }
     </script>
     <script type="module">
-      import { /* ... */ } from 'wccg-context'
+      import {/* ... */} from 'wccg-context'
     </script>
   </head>
-  <body>
-  </body>
+  <body></body>
 </html>
 ```
 
@@ -65,11 +64,11 @@ import {
 <html>
   <head>
     <script type="importmap">
-    {
-      "imports": {
-        "wccg-context": "https://esm.sh/@jsr/wccg-context"
+      {
+        "imports": {
+          "wccg-context": "https://esm.sh/@jsr/wccg-context"
+        }
       }
-    }
     </script>
     <script
       type="module"
@@ -90,7 +89,7 @@ import {
 
 ### File example-early-context-resolver.mjs
 
-```javascript
+````javascript
 /**
  * IMPORTANT: It is best to listen to context-request (a "Resolver")
  * as early as possible.
@@ -100,58 +99,57 @@ import {
 // Resume data (simple POJO)
 const EXAMPLE_DATA_ALREADY_AVAILABLE = {
   basics: {
-    name: "Alex Developer",
-    email: "alex@example.com",
-    phone: "+1-555-0123",
-    summary: "Full-stack developer with 5 years experience"
+    name: 'Alex Developer',
+    email: 'alex@example.com',
+    phone: '+1-555-0123',
+    summary: 'Full-stack developer with 5 years experience',
   },
   work: [{
-    company: "Tech Corp",
-    position: "Senior Developer",
-    startDate: "2020-01-15",
-    summary: "Led frontend architecture initiatives"
+    company: 'Tech Corp',
+    position: 'Senior Developer',
+    startDate: '2020-01-15',
+    summary: 'Led frontend architecture initiatives',
   }],
   skills: [{
-    name: "JavaScript",
-    level: "Advanced"
+    name: 'JavaScript',
+    level: 'Advanced',
   }, {
-    name: "TypeScript",
-    level: "Intermediate"
-  }]
+    name: 'TypeScript',
+    level: 'Intermediate',
+  }],
 }
 
 window.document.addEventListener('context-request', (event) => {
   // Filter only for the responsibility of that context-request
   if (event.context !== 'jsonresume-data') {
-    return;
+    return
   }
   // If you need to access the element that initiated the context-request
   const contextTarget = event.contextTarget
   // If all conditions for this resolver are met:
-  event.stopImmediatePropagation();
+  event.stopImmediatePropagation()
   const payload = createTodaysDate()
   event.callback(EXAMPLE_DATA_ALREADY_AVAILABLE)
 })
-```
-
+````
 
 ### File example-components.mjs
 
 ```javascript
-import {
-  ContextRequestEvent,
-} from 'wccg-context'
+import { ContextRequestEvent } from 'wccg-context'
 
 class ResumeBasics extends HTMLElement {
   // ...
 
   connectedCallback() {
-    this.dispatchEvent(new ContextRequestEvent(
-      'jsonresume-data',
-      this,
-      (resume) => this.#render(resume.basics),
-      false,
-    ))
+    this.dispatchEvent(
+      new ContextRequestEvent(
+        'jsonresume-data',
+        this,
+        (resume) => this.#render(resume.basics),
+        false,
+      ),
+    )
   }
 
   #render = (basics) => {
@@ -169,16 +167,18 @@ class ResumeWorkExperience extends HTMLElement {
   // ...
 
   connectedCallback() {
-    this.dispatchEvent(new ContextRequestEvent(
-      'jsonresume-data',
-      this,
-      (resume) => this.#render(resume.work),
-      false,
-    ))
+    this.dispatchEvent(
+      new ContextRequestEvent(
+        'jsonresume-data',
+        this,
+        (resume) => this.#render(resume.work),
+        false,
+      ),
+    )
   }
 
   #render = (work) => {
-    this.innerHTML = work.map(job => `
+    this.innerHTML = work.map((job) => `
       <article>
         <h3>${job.position} at ${job.company}</h3>
         <time>${job.startDate}</time>
@@ -223,8 +223,8 @@ Dispatched by components to request contextual data.
 
 ```javascript
 const root = new ContextRoot()
-root.attach(element)    // Begin intercepting context requests
-root.detach(element)    // Stop and cleanup
+root.attach(element) // Begin intercepting context requests
+root.detach(element) // Stop and cleanup
 ```
 
 Buffers unsatisfied context requests and replays them when providers become available.
@@ -236,7 +236,7 @@ element.dispatchEvent(
   new ContextProviderEvent(
     context,
     element,
-  )
+  ),
 )
 ```
 
