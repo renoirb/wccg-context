@@ -19,14 +19,18 @@ The Context Protocol enables web components to request data from ancestor elemen
 
 ## Installation
 
+This is a client-side (Browser) module intended to leverage the DOM.
+
+Documentation currently only supports installing via HTTP imports
+via `[importMap](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script/type/importmap)`
+
+<!--
 ```bash
 # JSR (recommended)
-deno add jsr:@jsr/wccg-context
-npx jsr add wccg-context
-
-# npm (auto-generated from JSR)
-npm install @jsr/wccg-context
+deno add jsr:@renoirb/wccg-context
+npx jsr add @renoirb/wccg-context
 ```
+-->
 
 ### HTTP Imports
 
@@ -36,7 +40,7 @@ npm install @jsr/wccg-context
     <script type="importmap">
       {
         "imports": {
-          "wccg-context": "https://esm.sh/@jsr/wccg-context"
+          "wccg-context": "https://esm.sh/jsr/@renoirb/wccg-context"
         }
       }
     </script>
@@ -53,7 +57,7 @@ Or direct import:
 ```javascript
 import {
   /* ... */
-} from 'https://esm.sh/@jsr/wccg-context'
+} from 'https://esm.sh/jsr/@renoirb/wccg-context'
 ```
 
 ## Basic Usage
@@ -66,7 +70,7 @@ import {
     <script type="importmap">
       {
         "imports": {
-          "wccg-context": "https://esm.sh/@jsr/wccg-context"
+          "wccg-context": "https://esm.sh/jsr/@renoirb/wccg-context"
         }
       }
     </script>
