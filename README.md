@@ -97,6 +97,7 @@ import {
 /**
  * IMPORTANT: It is best to listen to context-request (a "Resolver")
  * as early as possible.
+ * If you cannot, read more about ContextRoot and "late resolution".
  */
 
 // Resume data (simple POJO)
@@ -322,7 +323,73 @@ Dispatched by components to request contextual data.
 - `callback`: Function called with the context data
 - `subscribe`: Optional boolean for ongoing updates
 
+#### ContextRoot
+
+```javascript
+const root = new ContextRoot()
+root.attach(element) // Begin intercepting context requests
+root.detach(element) // Stop and cleanup
+```
+
+Buffers unsatisfied context requests and replays them when providers become available.
+
+#### ContextProviderEvent
+
+```javascript
+element.dispatchEvent(
+  new ContextProviderEvent(
+    context,
+    element,
+  ),
+)
+```
+
+Announces that a provider is available for a context.
+
+### Provider Utilities
+
+#### registerContextProvider
+
+```javascript
+// Static data
+const cleanup = registerContextProvider(
+  'resume-data',
+  resumeObject,
+)
+
+// Dynamic handler
+const cleanup = registerContextProvider('user-profile', async (event) => {
+  const userId = event.contextTarget.dataset.userId
+  return await loadUserProfile(userId)
+})
+
+// With options
+const cleanup = registerContextProvider('theme-config', themeData, {
+  target: document.querySelector('#app'),
+  signal: abortController.signal,
+})
+```
+
+#### Bulk Registration
+
+```javascript
+const cleanup = registerContextProviders({
+  'resume-data': resumeData,
+  'site-config': { theme: 'professional', locale: 'fr-CA' },
+  'contact-info': contactData,
+})
+```
+
+#### Type-Safe Provider Factory
+
+```javascript
+const ResumeContext = createContextProvider('resume-data')
+const cleanup = ResumeContext.provide(resumeData)
+```
+
 ## Implementation Notes
+
+**Late Resolution**: `ContextRoot` buffers requests with `subscribe: true` and replays them when providers announce availability via `ContextProviderEvent`. This enables dynamic loading scenarios where data arrives after components are rendered.
 
 **Memory Management**: Uses WeakRef patterns to ensure proper garbage collection when components are removed from the DOM.
 
