@@ -19,14 +19,18 @@ The Context Protocol enables web components to request data from ancestor elemen
 
 ## Installation
 
+This is a client-side (Browser) module intended to leverage the DOM.
+
+Documentation currently only supports installing via HTTP imports
+via `[importMap](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script/type/importmap)`
+
+<!--
 ```bash
 # JSR (recommended)
-deno add jsr:@jsr/wccg-context
-npx jsr add wccg-context
-
-# npm (auto-generated from JSR)
-npm install @jsr/wccg-context
+deno add jsr:@renoirb/wccg-context
+npx jsr add @renoirb/wccg-context
 ```
+-->
 
 ### HTTP Imports
 
@@ -36,7 +40,7 @@ npm install @jsr/wccg-context
     <script type="importmap">
       {
         "imports": {
-          "wccg-context": "https://esm.sh/@jsr/wccg-context"
+          "wccg-context": "https://esm.sh/jsr/@renoirb/wccg-context"
         }
       }
     </script>
@@ -53,7 +57,7 @@ Or direct import:
 ```javascript
 import {
   /* ... */
-} from 'https://esm.sh/@jsr/wccg-context'
+} from 'https://esm.sh/jsr/@renoirb/wccg-context'
 ```
 
 ## Basic Usage
@@ -66,7 +70,7 @@ import {
     <script type="importmap">
       {
         "imports": {
-          "wccg-context": "https://esm.sh/@jsr/wccg-context"
+          "wccg-context": "https://esm.sh/jsr/@renoirb/wccg-context"
         }
       }
     </script>
@@ -119,6 +123,13 @@ const EXAMPLE_DATA_ALREADY_AVAILABLE = {
   }],
 }
 
+/**
+ * Alternatively, we can import and use registerContextProvider helper:
+ *
+ * ```js
+ * registerContextProvider('jsonresume-data', EXAMPLE_DATA_ALREADY_AVAILABLE)
+ * ```
+ */
 window.document.addEventListener('context-request', (event) => {
   // Filter only for the responsibility of that context-request
   if (event.context !== 'jsonresume-data') {
@@ -192,6 +203,99 @@ customElements.define('jsonresume-basics', ResumeBasics)
 customElements.define('jsonresume-work-experience', ResumeWorkExperience)
 ```
 
+## Late Resolution Example
+
+The Context Protocol’s key feature is handling timing mismatches - components may request contexts before providers exist.
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="importmap">
+    {
+      "imports": {
+        "wccg-context": "https://esm.sh/@jsr/wccg-context"
+      }
+    }
+  </script>
+  <script type="module">
+    import { ContextRoot } from 'wccg-context'
+    // Enable late resolution early
+    new ContextRoot().attach(document.body)
+  </script>
+</head>
+<body>
+  <!-- Components render immediately and request context -->
+  <!-- ContextRoot buffers these requests until provider is ready -->
+  <jsonresume-basics></jsonresume-basics>
+  <jsonresume-work-experience></jsonresume-work-experience>
+
+  <script type="module">
+    import {
+      registerContextProvider,
+    } from 'wccg-context'
+
+    // Load resume data asynchronously (happens AFTER components render)
+    fetch('/api/resume.json')
+      .then(response => response.json())
+      .then(resumeData => {
+        // All waiting components receive data when provider registers
+        registerContextProvider('jsonresume-data', resumeData)
+      })
+      .catch(error => {
+        console.error('Failed to load resume:', error)
+        // Provide fallback data
+        registerContextProvider('jsonresume-data', {
+          basics: {
+            label: "Resume not available",
+          }
+        })
+      })
+  </script>
+  <script type="module">
+    // Difference from example-components.mjs
+
+    import {
+      ContextRequestEvent,
+    } from 'wccg-context'
+
+    class ResumeBasics extends HTMLElement {
+      // ...
+      connectedCallback() {
+        this.dispatchEvent(
+          new ContextRequestEvent(
+            'jsonresume-data',
+            this,
+            (basics) => this.#render(basics)
+            // subscription = true is required for ContextRoot to capture
+            true,
+          ),
+        )
+      }
+    }
+
+    class ResumeWorkExperience extends HTMLElement {
+      // ...
+      connectedCallback() {
+        this.dispatchEvent(
+          new ContextRequestEvent(
+            'jsonresume-data',
+            this,
+            (work) => this.#render(work),
+            // subscription = true is required for ContextRoot to capture
+            true,
+          )
+        )
+      }
+    }
+
+    customElements.define('jsonresume-basics', ResumeBasics)
+    customElements.define('jsonresume-work-experience', ResumeWorkExperience)
+  </script>
+</body>
+</html>
+```
+
 ## What This Is NOT
 
 ❌ **Dependency Injection**: Don’t pass services, loggers, or API clients
@@ -241,6 +345,47 @@ element.dispatchEvent(
 ```
 
 Announces that a provider is available for a context.
+
+### Provider Utilities
+
+#### registerContextProvider
+
+```javascript
+// Static data
+const cleanup = registerContextProvider(
+  'resume-data',
+  resumeObject,
+)
+
+// Dynamic handler
+const cleanup = registerContextProvider('user-profile', async (event) => {
+  const userId = event.contextTarget.dataset.userId
+  return await loadUserProfile(userId)
+})
+
+// With options
+const cleanup = registerContextProvider('theme-config', themeData, {
+  target: document.querySelector('#app'),
+  signal: abortController.signal,
+})
+```
+
+#### Bulk Registration
+
+```javascript
+const cleanup = registerContextProviders({
+  'resume-data': resumeData,
+  'site-config': { theme: 'professional', locale: 'fr-CA' },
+  'contact-info': contactData,
+})
+```
+
+#### Type-Safe Provider Factory
+
+```javascript
+const ResumeContext = createContextProvider('resume-data')
+const cleanup = ResumeContext.provide(resumeData)
+```
 
 ## Implementation Notes
 
