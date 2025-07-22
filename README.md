@@ -1,6 +1,6 @@
 # wccg-context
 
-Minimal implementation of the [W3C Web Components Community Group Context Protocol](https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md) with complete late resolution support.
+Minimal implementation of the [W3C Web Components Community Group Context Protocol](https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md).
 
 ## Overview
 
@@ -11,7 +11,6 @@ The Context Protocol enables web components to request data from ancestor elemen
 ## Features
 
 - **Complete Protocol Compliance**: Full WCCG Context Protocol implementation
-- **Late Resolution Support**: Handles providers registering after consumers
 - **Framework Agnostic**: Works with any client side JavaScript as it is leveraging native browser events already part of how browsers work. Which can be used from any library or vanilla implementations
 - **Zero Dependencies**: Pure JavaScript with no external requirements
 - **Memory Safe**: WeakRef-based cleanup prevents memory leaks
@@ -19,14 +18,18 @@ The Context Protocol enables web components to request data from ancestor elemen
 
 ## Installation
 
+This is a client-side (Browser) module intended to leverage the DOM.
+
+Documentation currently only supports installing via HTTP imports
+via `[importMap](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script/type/importmap)`
+
+<!--
 ```bash
 # JSR (recommended)
-deno add jsr:@jsr/wccg-context
-npx jsr add wccg-context
-
-# npm (auto-generated from JSR)
-npm install @jsr/wccg-context
+deno add jsr:@renoirb/wccg-context
+npx jsr add @renoirb/wccg-context
 ```
+-->
 
 ### HTTP Imports
 
@@ -36,7 +39,7 @@ npm install @jsr/wccg-context
     <script type="importmap">
       {
         "imports": {
-          "wccg-context": "https://esm.sh/@jsr/wccg-context"
+          "wccg-context": "https://esm.sh/jsr/@renoirb/wccg-context"
         }
       }
     </script>
@@ -53,7 +56,7 @@ Or direct import:
 ```javascript
 import {
   /* ... */
-} from 'https://esm.sh/@jsr/wccg-context'
+} from 'https://esm.sh/jsr/@renoirb/wccg-context'
 ```
 
 ## Basic Usage
@@ -66,7 +69,7 @@ import {
     <script type="importmap">
       {
         "imports": {
-          "wccg-context": "https://esm.sh/@jsr/wccg-context"
+          "wccg-context": "https://esm.sh/jsr/@renoirb/wccg-context"
         }
       }
     </script>
@@ -93,7 +96,6 @@ import {
 /**
  * IMPORTANT: It is best to listen to context-request (a "Resolver")
  * as early as possible.
- * If you cannot, read more about ContextRoot and "late resolution".
  */
 
 // Resume data (simple POJO)
@@ -194,13 +196,15 @@ customElements.define('jsonresume-work-experience', ResumeWorkExperience)
 
 ## What This Is NOT
 
-❌ **Dependency Injection**: Don’t pass services, loggers, or API clients
-❌ **Data Fetching**: Components should not load their own data
-❌ **State Management**: Use dedicated state libraries for complex state
+- ❌ **Dependency Injection**: Don’t pass services, loggers, or API clients
+- ❌ **Data Fetching**: Components should not load their own data
+- ❌ **State Management**: Use dedicated state libraries for complex state
 
-✅ **Data Sharing**: Pass simple data objects down the component tree
-✅ **Configuration**: Share application-level configuration
-✅ **Static Resources**: Provide loaded content like JSONResume data
+### Intended purpose
+
+- ✅ **Data Sharing**: Pass simple data objects down the component tree
+- ✅ **Configuration**: Share application-level configuration
+- ✅ **Static Resources**: Provide loaded content like JSONResume data
 
 ## API Reference
 
@@ -219,32 +223,7 @@ Dispatched by components to request contextual data.
 - `callback`: Function called with the context data
 - `subscribe`: Optional boolean for ongoing updates
 
-#### ContextRoot
-
-```javascript
-const root = new ContextRoot()
-root.attach(element) // Begin intercepting context requests
-root.detach(element) // Stop and cleanup
-```
-
-Buffers unsatisfied context requests and replays them when providers become available.
-
-#### ContextProviderEvent
-
-```javascript
-element.dispatchEvent(
-  new ContextProviderEvent(
-    context,
-    element,
-  ),
-)
-```
-
-Announces that a provider is available for a context.
-
 ## Implementation Notes
-
-**Late Resolution**: `ContextRoot` buffers requests with `subscribe: true` and replays them when providers announce availability via `ContextProviderEvent`. This enables dynamic loading scenarios where data arrives after components are rendered.
 
 **Memory Management**: Uses WeakRef patterns to ensure proper garbage collection when components are removed from the DOM.
 
